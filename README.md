@@ -2,6 +2,13 @@
 
 Boilerplate with predefined code style
 
+Includes:
+
+- eslint config
+- jest config
+- prettier config
+- .editorconfig
+
 ## Prerequisite
 
 - Node.js 8+
@@ -10,7 +17,7 @@ Boilerplate with predefined code style
 ## Setup the new project
 
 - `git clone --origin boilerplate https://github.com/parsec-labs/parsec-cli-boilerplate.git <your-project-name>`
-- `git remote origin add git@github.com:parsec-labs/<your-project-name>.git`
+- `git remote origin add git@github.com:parsec-labs/<your-project-name>.git && <your-project-name>`
 - change name in `package.json`
 - `yarn`
 - Enjoy :-)
