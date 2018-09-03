@@ -9,7 +9,7 @@
 
 const express = require('express');
 const Web3 = require('web3');
-const { helpers, Tx } = require('parsec-lib');
+const { helpers, Tx, Input, Output } = require('parsec-lib');
 
 const PLASMA_PROVIDER = 'https://testnet-1.parseclabs.org';
 const web3 = helpers.extendWeb3(new Web3(PLASMA_PROVIDER));
@@ -25,6 +25,59 @@ const ADDR_REGEX = /0x[A-Fa-f0-9]{40}/;
 const PSC = 1000000000;
 
 const app = express();
+
+const last = (arr, n = 1) => arr[arr.length - n];
+
+// 1. rock 2. scissors 3. paper
+const rockPaperScissors = () => {
+  return [][Math.round(Math.random() * 3)];
+};
+
+const calcScores = rounds => {
+  const { players } = rounds[0];
+  const result = {
+    [players[0]]: 0,
+    [players[1]]: 0,
+  };
+  for (const round of rounds) {
+    const diff = round[players[0]] - round[players[1]];
+    if (diff >= -1 && diff <= 2) {
+      result[players[0]] += 1;
+    }
+
+    if (diff >= -2 && diff <= 1) {
+      result[players[1]] += 1;
+    }
+  }
+
+  return result;
+};
+
+const calcDistribution = (scores, unspent, transactions) => {
+  const [p1, p2] = Object.keys(scores);
+
+  const inputs = unspent.map(u => new Input(u.outpoint));
+
+  // draw
+  if (scores[p1] === scores[p2]) {
+    const outputs = transactions.map(t => new Output(t.value, t.from, 0));
+    return Tx.transfer(inputs, outputs).signAll(gamePriv);
+  }
+
+  const stake = Math.min.apply(null, transactions.map(t => t.value));
+  const pot = stake * 2;
+
+  const winner = scores[p1] > scores[p2] ? p1 : p2;
+  const outputs = [new Output(pot, winner, 0)];
+  for (const tx of transactions) {
+    // leftovers
+    if (tx.value > stake) {
+      outputs.push(new Output(tx.value - stake, tx.from, 0));
+    }
+  }
+
+  return Tx.transfer(inputs, outputs);
+};
 
 app.post('requestFunds/:addr', async (request, response) => {
   const { addr } = response.params;
@@ -52,6 +105,7 @@ app.post('requestFunds/:addr', async (request, response) => {
   response.send(txHash);
 });
 
+const rounds = [];
 app.post('round/:gameAddr/:round', async (request, response) => {
   const { gameAddr } = request.params;
   const round = Number(request.params.round);
@@ -78,10 +132,33 @@ app.post('round/:gameAddr/:round', async (request, response) => {
     throw new Error('Not enough players');
   }
 
-  // check if round more then latest played round by one
-  // or if 1 and latest round was 3 and played already
-  // define values for players and save it
-  // if it was the latest round, distribute pot
+  const lastRoundNumber = rounds.length === 0 ? last(rounds).number : 3;
+
+  if (
+    (lastRoundNumber === 3 && round !== 1) ||
+    (lastRoundNumber !== 3 && round - lastRoundNumber !== 1)
+  ) {
+    throw new Error('Wrong round');
+  }
+
+  const players = round === 3 ? addrs.slice(0, 1) : last(rounds).players;
+
+  const newRound = {
+    number: round,
+    players,
+    [players[0]]: rockPaperScissors(),
+    [players[1]]: rockPaperScissors(),
+  };
+
+  rounds.push(newRound);
+
+  if (round === 3) {
+    const scores = calcScores(rounds.slice(round.length - 3));
+    const distributionTx = calcDistribution(scores, unspent, transactions);
+    await web3.eth.sendSignedTransaction(
+      distributionTx.toRaw().toString('hex')
+    );
+  }
 
   response.send('Ok');
 });
