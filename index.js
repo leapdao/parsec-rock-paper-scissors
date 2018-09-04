@@ -83,7 +83,9 @@ const calcDistribution = (scores, unspent, transactions) => {
   const outputs = [new Output(pot, winner, 0)];
   for (const tx of transactions) {
     // leftovers
-    if (tx.value > stake) {
+    if (tx.from !== p1 && tx.from !== p2) {
+      outputs.push(new Output(tx.value, tx.from, 0));
+    } else if (tx.value > stake) {
       if (tx.from === winner) {
         outputs[0].value += tx.value - stake;
       } else {
