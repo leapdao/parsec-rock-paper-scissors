@@ -82,10 +82,10 @@ const calcDistribution = (scores, unspent, transactions) => {
   const winner = scores[p1] > scores[p2] ? p1 : p2;
   const outputs = [new Output(pot, winner, 0)];
   for (const tx of transactions) {
-    // leftovers
     if (tx.from !== p1 && tx.from !== p2) {
       outputs.push(new Output(tx.value, tx.from, 0));
     } else if (tx.value > stake) {
+      // leftovers
       if (tx.from === winner) {
         outputs[0].value += tx.value - stake;
       } else {
@@ -99,15 +99,31 @@ const calcDistribution = (scores, unspent, transactions) => {
 
 const rounds = [];
 
-app.get('/games', (request, response) => {
-  response.send(
-    JSON.stringify([
-      {
-        address: gameAccount.address,
-        rounds,
-      },
-    ])
+const gameInfo = async address => {
+  const unspent = await web3.getUnspent(address);
+  const transactions = await Promise.all(
+    unspent.map(u =>
+      web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
+    )
   );
+  const addrs = transactions
+    .map(t => t.from)
+    .filter((addr, i, src) => src.indexOf(addr) === i);
+
+  const lastRoundNumber = (last(rounds) && last(rounds).number) || 3;
+  const latestRounds =
+    addrs.length < 2 ? [] : rounds.slice(rounds.length - (lastRoundNumber % 3));
+
+  return {
+    address,
+    players:
+      latestRounds.length > 0 ? latestRounds[0].players : addrs.slice(0, 2),
+    rounds: latestRounds,
+  };
+};
+
+app.get('/games', async (request, response) => {
+  response.send(JSON.stringify([await gameInfo(gameAccount.address)]));
 });
 
 app.post('/requestFunds/:addr', async (request, response, next) => {

@@ -18,6 +18,7 @@ const PRIV2 =
   '0xea3a59a673a9f7e74ad65e92ee04c2330fc5b905d0fa47bb2ae36c0b94af61cd';
 const P1 = web3.eth.accounts.privateKeyToAccount(PRIV1);
 const P2 = web3.eth.accounts.privateKeyToAccount(PRIV2);
+const GAME_ADDR = '0xB549eda70D3765d5E978f2C761650CB29d4683f3';
 
 async function transfer(acc, to, value, color) {
   const unspent = await web3.getUnspent(acc.address);
@@ -35,12 +36,16 @@ async function transfer(acc, to, value, color) {
   return web3.eth.sendSignedTransaction(tx.toRaw());
 }
 
+async function setupTheGame() {
+  await transfer(P1, GAME_ADDR, 1000, 0);
+  await transfer(P2, GAME_ADDR, 1000, 0);
+  console.log('Game: ', await web3.eth.getBalance(GAME_ADDR));
+  console.log('P1: ', await web3.eth.getBalance(P1.address));
+  console.log('P2: ', await web3.eth.getBalance(P2.address));
+}
+
 async function run() {
-  const gameBalance = await web3.eth.getBalance(
-    '0xB549eda70D3765d5E978f2C761650CB29d4683f3'
-  );
-  console.log(gameBalance);
-  // await transfer(P2, '0xB549eda70D3765d5E978f2C761650CB29d4683f3', 1000, 0);
+  await setupTheGame();
   // const unspent = await web3.getUnspent(alice.address);
   // const inputs = helpers.calcInputs(unspent, alice.address, 1000000, 0);
   // const outputs = helpers.calcOutputs(
