@@ -1,5 +1,7 @@
 # Simple rock-paper-scissors backend on top of parsec plasma chain
 
+![the rock](cover.png)
+
 ## Prerequisite
 
 - Node.js 8+
