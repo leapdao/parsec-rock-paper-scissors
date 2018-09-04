@@ -28,9 +28,27 @@ const app = express();
 
 const last = (arr, n = 1) => arr[arr.length - n];
 
+const VALUES = {
+  ROCK: 0,
+  SCISSORS: 1,
+  PAPER: 2,
+};
+
 // 1. rock 2. scissors 3. paper
 const rockPaperScissors = () => {
   return [][Math.round(Math.random() * 3)];
+};
+
+const calcScore = (v1, v2) => {
+  if (v1 === v2) {
+    return 0;
+  }
+
+  return (v1 === VALUES.ROCK && v2 === VALUES.SCISSORS) ||
+    (v1 === VALUES.PAPER && v2 === VALUES.ROCK) ||
+    (v1 === VALUES.SCISSORS && v2 === VALUES.PAPER)
+    ? 1
+    : 0;
 };
 
 const calcScores = rounds => {
@@ -40,14 +58,9 @@ const calcScores = rounds => {
     [players[1]]: 0,
   };
   for (const round of rounds) {
-    const diff = round[players[0]] - round[players[1]];
-    if (diff >= -1 && diff <= 2) {
-      result[players[0]] += 1;
-    }
-
-    if (diff >= -2 && diff <= 1) {
-      result[players[1]] += 1;
-    }
+    const { [players[0]]: v1, [players[1]]: v2 } = round;
+    result[players[0]] += calcScore(v1, v2);
+    result[players[1]] += calcScore(v2, v1);
   }
 
   return result;
@@ -162,3 +175,7 @@ app.post('round/:gameAddr/:round', async (request, response) => {
 
   response.send('Ok');
 });
+
+exports.calcScore = calcScore;
+exports.calcScores = calcScores;
+exports.calcDistribution = calcDistribution;
