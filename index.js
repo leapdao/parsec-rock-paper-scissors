@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-/* eslint-disable no-restricted-globals */
+/* eslint-disable no-restricted-globals, consistent-return */
 
 const express = require('express');
 const Web3 = require('web3');
@@ -22,7 +22,7 @@ const faucetPriv =
 const faucetAccount = web3.eth.accounts.privateKeyToAccount(faucetPriv);
 
 const ADDR_REGEX = /0x[A-Fa-f0-9]{40}/;
-const PSC = 1000000000;
+const FUND_AMOUNT = 10000;
 
 const app = express();
 
@@ -34,9 +34,8 @@ const VALUES = {
   PAPER: 2,
 };
 
-// 1. rock 2. scissors 3. paper
 const rockPaperScissors = () => {
-  return [][Math.round(Math.random() * 3)];
+  return Math.round(Math.random() * 3);
 };
 
 const calcScore = (v1, v2) => {
@@ -93,47 +92,65 @@ const calcDistribution = (scores, unspent, transactions) => {
     }
   }
 
-  return Tx.transfer(inputs, outputs);
+  return Tx.transfer(inputs, outputs).signAll(gamePriv);
 };
 
-app.post('requestFunds/:addr', async (request, response) => {
-  const { addr } = response.params;
+const rounds = [];
+
+app.get('/games', (request, response) => {
+  response.send(
+    JSON.stringify([
+      {
+        address: gameAccount.address,
+        rounds,
+      },
+    ])
+  );
+});
+
+app.post('/requestFunds/:addr', async (request, response, next) => {
+  const { addr } = request.params;
   if (!ADDR_REGEX.test(addr)) {
-    throw new Error('Wrong request. Param — wallet address');
+    return next('Wrong request. Param — wallet address');
   }
 
   const reciever = addr;
   const unspent = await web3.getUnspent(faucetAccount.address);
-  const inputs = helpers.calcInputs(unspent, faucetAccount.address, PSC, 0);
+  const inputs = helpers.calcInputs(
+    unspent,
+    faucetAccount.address,
+    FUND_AMOUNT,
+    0
+  );
   const outputs = helpers.calcOutputs(
     unspent,
     inputs,
     faucetAccount.address,
     reciever,
-    PSC,
+    FUND_AMOUNT,
     0
   );
   const transfer = Tx.transfer(inputs, outputs).signAll(faucetPriv);
 
-  const txHash = await web3.eth.sendSignedTransaction(
-    transfer.toRaw().toString('hex')
-  );
+  const txHash = await web3.eth.sendSignedTransaction(transfer.toRaw());
 
   response.send(txHash);
 });
 
-const rounds = [];
-app.post('round/:gameAddr/:round', async (request, response) => {
+app.post('/round/:gameAddr/:round', async (request, response, next) => {
   const { gameAddr } = request.params;
   const round = Number(request.params.round);
   if (!ADDR_REGEX.test(gameAddr) || isNaN(round)) {
-    throw new Error(
-      'Wrong request. First param — game address, second — round number (1-3)'
+    response.send(
+      new Error(
+        'Wrong request. First param — game address, second — round number (1-3)'
+      )
     );
+    return;
   }
 
   if (gameAccount.address !== gameAddr) {
-    throw new Error('Unknown game');
+    return next('Unknown game');
   }
 
   const unspent = await web3.getUnspent(gameAddr);
@@ -146,19 +163,20 @@ app.post('round/:gameAddr/:round', async (request, response) => {
     .map(t => t.from)
     .filter((addr, i, src) => src.indexOf(addr) === i);
   if (addrs.length < 2) {
-    throw new Error('Not enough players');
+    return next(`Not enough players (${addrs.length})`);
   }
 
-  const lastRoundNumber = rounds.length === 0 ? last(rounds).number : 3;
+  const lastRoundNumber = rounds.length === 0 ? 3 : last(rounds).number;
 
   if (
     (lastRoundNumber === 3 && round !== 1) ||
     (lastRoundNumber !== 3 && round - lastRoundNumber !== 1)
   ) {
-    throw new Error('Wrong round');
+    return next('Wrong round');
   }
 
-  const players = round === 3 ? addrs.slice(0, 1) : last(rounds).players;
+  const players =
+    lastRoundNumber === 3 ? addrs.slice(0, 2) : last(rounds).players;
 
   const newRound = {
     number: round,
@@ -172,12 +190,28 @@ app.post('round/:gameAddr/:round', async (request, response) => {
   if (round === 3) {
     const scores = calcScores(rounds.slice(round.length - 3));
     const distributionTx = calcDistribution(scores, unspent, transactions);
-    await web3.eth.sendSignedTransaction(
-      distributionTx.toRaw().toString('hex')
-    );
+    await web3.eth.sendSignedTransaction(distributionTx.toRaw());
   }
 
   response.send('Ok');
+});
+
+app.listen(3005, () => {
+  console.log('Listen on 3005');
+});
+
+/* eslint-disable no-unused-vars */
+app.use((err, req, res, next) => {
+  /* eslint-enable */
+
+  if (err) {
+    res.status(500).send(
+      JSON.stringify({
+        type: 'error',
+        message: err,
+      })
+    );
+  }
 });
 
 exports.VALUES = VALUES;
