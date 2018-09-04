@@ -1,26 +1,18 @@
-# PARSEC Labs cli tool/library boilerplate
-
-Boilerplate with predefined code style
-
-Includes:
-
-- eslint config
-- jest config
-- prettier config
-- .editorconfig
+# Simple rock-paper-scissors backend on top of parsec plasma chain
 
 ## Prerequisite
 
 - Node.js 8+
 - Yarn
 
-## Setup the new project
+## Develop
 
-- `git clone --origin boilerplate https://github.com/parsec-labs/parsec-cli-boilerplate.git <your-project-name>`
-- `git remote origin add git@github.com:parsec-labs/<your-project-name>.git && <your-project-name>`
-- change name in `package.json`
 - `yarn`
-- Enjoy :-)
+- Read `index.js`
+- Change
+- Run `node index.js`
+
+Some useful stuff can be found in `playground.js`
 
 ## Tests
 
