@@ -85,7 +85,11 @@ const calcDistribution = (scores, unspent, transactions) => {
   for (const tx of transactions) {
     // leftovers
     if (tx.value > stake) {
-      outputs.push(new Output(tx.value - stake, tx.from, 0));
+      if (tx.from === winner) {
+        outputs[0].value += tx.value - stake;
+      } else {
+        outputs.push(new Output(tx.value - stake, tx.from, 0));
+      }
     }
   }
 
@@ -176,6 +180,7 @@ app.post('round/:gameAddr/:round', async (request, response) => {
   response.send('Ok');
 });
 
+exports.VALUES = VALUES;
 exports.calcScore = calcScore;
 exports.calcScores = calcScores;
 exports.calcDistribution = calcDistribution;
