@@ -13,6 +13,7 @@ export default class Store {
   public game: IGame;
 
   private interval: number;
+  private waiting: boolean = false;
 
   constructor(public web3: ExtendedWeb3, public account: Account) {
     this.loadData();
@@ -27,7 +28,9 @@ export default class Store {
 
   private loadGame() {
     getGames().then(([game]) => {
-      this.game = game;
+      if (!this.waiting) {
+        this.game = game;
+      }
     });
   }
 
@@ -60,14 +63,20 @@ export default class Store {
   }
 
   public async play() {
-    const { game } = await playRound(
-      this.game.address,
-      this.game.rounds.length + 1
-    );
-    this.game = game;
+    this.waiting = true;
 
-    if (this.game.rounds.length === 3) {
-      clearInterval(this.interval);
+    try {
+      const { game } = await playRound(
+        this.game.address,
+        this.game.rounds.length + 1
+      );
+      this.game = game;
+
+      if (this.game.rounds.length === 3) {
+        clearInterval(this.interval);
+      }
+    } finally {
+      this.waiting = false;
     }
 
     // this.loadData();

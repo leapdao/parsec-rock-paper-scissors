@@ -3,6 +3,7 @@ import { observer, inject } from 'mobx-react';
 
 import Join from './join';
 import Store from '../store';
+import { Fragment } from 'react';
 
 interface IProps {
   store?: Store;
@@ -30,6 +31,23 @@ export default class Game extends React.Component<IProps, any> {
         {store.game.players.length === 0 && (
           <div className="join-popover">
             <Join title="No one joined the game yet" maxStake={store.balance} />
+          </div>
+        )}
+        {store.game.players.length === 2 && (
+          <div className="round">
+            {!lastRound && (
+              <Fragment>
+                waiting
+                <br />
+                for start
+              </Fragment>
+            )}
+            {lastRound && (
+              <Fragment>
+                <strong>{lastRound.number}</strong>
+                Round
+              </Fragment>
+            )}
           </div>
         )}
         <div className="players">

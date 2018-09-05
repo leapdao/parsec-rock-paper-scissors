@@ -93,3 +93,20 @@ body {
   background: #0cf;
   border-radius: 4px;
 }
+
+.round {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  left: 50%;
+
+  text-align: center;
+  text-transform: lowercase;
+
+  transform: translateX(-50%);
+}
+
+.round strong {
+  display: block;
+  font-size: 3rem;
+}
