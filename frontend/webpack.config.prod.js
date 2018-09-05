@@ -8,7 +8,7 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: './src/index.tsx',
   mode: 'production',
   output: {
     publicPath: '/',
@@ -16,7 +16,7 @@ module.exports = {
     filename: 'index.[hash].js',
   },
   resolve: {
-    extensions: ['.js', '.ts'],
+    extensions: ['.js', '.ts', '.tsx'],
     alias: {
       'web3-eth-ens': require.resolve('./dummies/web3-eth-ens.js'),
       'web3-providers-ipc': require.resolve('./dummies/web3-providers.js'),

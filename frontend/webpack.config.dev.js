@@ -6,7 +6,7 @@ const autoprefixer = require('autoprefixer');
 const HtmlPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: './src/index.tsx',
   mode: 'development',
   output: {
     publicPath: '/',
@@ -14,7 +14,7 @@ module.exports = {
     filename: 'index.[hash].js',
   },
   resolve: {
-    extensions: ['.js', '.ts'],
+    extensions: ['.js', '.ts', '.tsx'],
   },
   module: {
     rules: [

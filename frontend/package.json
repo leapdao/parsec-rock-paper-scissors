@@ -68,12 +68,18 @@
     "webpack-dev-server": "^3.1.7"
   },
   "dependencies": {
+    "@types/react": "^16.4.13",
+    "@types/react-dom": "^16.0.7",
     "bn.js": "^4.11.8",
     "elliptic": "^6.4.1",
+    "mobx": "^5.1.0",
+    "mobx-react": "^5.2.6",
+    "parsec-lib": "0.15.4",
     "preact": "^8.3.0",
     "preact-compat": "^3.18.2",
     "prop-types": "^15.6.1",
     "react": "^16.4.0",
-    "react-dom": "^16.4.0"
+    "react-dom": "^16.4.0",
+    "web3": "^1.0.0-beta.36"
   }
 }

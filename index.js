@@ -9,6 +9,7 @@
 
 const express = require('express');
 const Web3 = require('web3');
+const cors = require('cors');
 const { helpers, Tx } = require('parsec-lib');
 
 const calcDistribution = require('./src/calcDistribution');
@@ -59,6 +60,12 @@ const gameInfo = async address => {
     rounds: latestRounds,
   };
 };
+
+app.use(
+  cors({
+    origin: '*',
+  })
+);
 
 app.get('/games', async (request, response) => {
   response.send(JSON.stringify([await gameInfo(gameAccount.address)]));
@@ -137,14 +144,18 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
   const newRound = {
     number: round,
     players,
-    [players[0]]: rockPaperScissors(),
-    [players[1]]: rockPaperScissors(),
+    result: {
+      [players[0]]: rockPaperScissors(),
+      [players[1]]: rockPaperScissors(),
+    },
   };
 
   rounds.push(newRound);
 
   if (round === 3) {
-    const scores = calcScores(rounds.slice(round.length - 3));
+    const scores = calcScores(
+      rounds.slice(round.length - 3).map(r => r.result)
+    );
     const distributionTx = calcDistribution(
       scores,
       unspent,
