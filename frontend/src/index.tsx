@@ -6,12 +6,14 @@
  */
 
 import * as React from 'react';
+import { Provider } from 'mobx-react';
 import * as ReactDOM from 'react-dom';
 import * as Web3 from 'web3';
 import { helpers } from 'parsec-lib';
 
 import App from './components/app';
 import { getAccount, requestFaucet } from './wallet';
+import Store from './store';
 
 const PARSEC_PROVIDER = 'https://testnet-1.parseclabs.org';
 const web3 = helpers.extendWeb3(new (Web3 as any)(PARSEC_PROVIDER));
@@ -19,8 +21,11 @@ const web3 = helpers.extendWeb3(new (Web3 as any)(PARSEC_PROVIDER));
 const account = getAccount(web3);
 
 requestFaucet(web3, account).then(() => {
+  const store = new Store(web3, account);
   ReactDOM.render(
-    <App web3={web3} account={account} />,
+    <Provider store={store}>
+      <App />
+    </Provider>,
     document.getElementById('app')
   );
 });

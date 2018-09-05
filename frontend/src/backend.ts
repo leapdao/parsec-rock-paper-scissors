@@ -1,9 +1,9 @@
 import { requestApi } from './api';
-import { Game } from './types';
+import { IGame } from './types';
 
 const request = requestApi('http://localhost:3005');
 
-export const getGames = (): Promise<Game[]> => {
+export const getGames = (): Promise<IGame[]> => {
   return request('get', 'games');
 };
 
@@ -11,6 +11,9 @@ export const requestFunds = (address: string) => {
   return request('post', `requestFunds/${address}`);
 };
 
-export const playRound = (gameAddr: string, round: number) => {
+export const playRound = (
+  gameAddr: string,
+  round: number
+): Promise<{ game: IGame }> => {
   return request('post', `round/${gameAddr}/${round}`);
 };

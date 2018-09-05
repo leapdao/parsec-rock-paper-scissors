@@ -38,7 +38,7 @@ async function transfer(acc, to, value, color) {
 
 async function setupTheGame() {
   await transfer(P1, GAME_ADDR, 1000, 0);
-  await transfer(P2, GAME_ADDR, 1000, 0);
+  // await transfer(P2, GAME_ADDR, 1000, 0);
   console.log('Game: ', await web3.eth.getBalance(GAME_ADDR));
   console.log('P1: ', await web3.eth.getBalance(P1.address));
   console.log('P2: ', await web3.eth.getBalance(P2.address));

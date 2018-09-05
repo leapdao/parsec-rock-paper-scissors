@@ -9,38 +9,29 @@ import * as React from 'react';
 import { Account } from 'web3/types';
 import { ExtendedWeb3 } from 'parsec-lib';
 import { observable } from 'mobx';
-import { observer } from 'mobx-react';
-// import PropTypes from 'prop-types';
+import { observer, inject } from 'mobx-react';
 
+import Game from './game';
 import '../style.css';
+import Store from '../store';
 
 interface IProps {
-  web3: ExtendedWeb3;
-  account: Account;
+  store?: Store;
 }
 
+@inject('store')
 @observer
 class App extends React.Component<IProps, any> {
-  @observable
-  private balance: number;
-
-  constructor(props) {
-    super(props);
-    this.readData();
-  }
-
-  private readData() {
-    const { web3, account } = this.props;
-    web3.eth.getBalance(account.address).then(balance => {
-      this.balance = balance;
-    });
-  }
-
   render() {
+    const { store } = this.props;
+    if (!store) {
+      return null;
+    }
     return (
-      <div>
-        <h1>Index page</h1>
-        Balance: {this.balance}
+      <div className="app">
+        <h1>🌟 ✊ ✋ ✌ 🌟</h1>
+        {!store.game && 'Loading...'}
+        {store.game && <Game />}
       </div>
     );
   }

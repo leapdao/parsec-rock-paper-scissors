@@ -1,4 +1,4 @@
-export type Round = {
+export type IRound = {
   number: number;
   players: string[];
   result: {
@@ -6,8 +6,9 @@ export type Round = {
   };
 };
 
-export type Game = {
+export type IGame = {
   address: string;
+  stake: number;
   players: string[];
-  rounds: Round[];
+  rounds: IRound[];
 };

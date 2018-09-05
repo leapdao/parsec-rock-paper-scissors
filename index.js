@@ -33,12 +33,16 @@ const app = express();
 const last = (arr, n = 1) => arr[arr.length - n];
 
 const rockPaperScissors = () => {
-  return Math.round(Math.random() * 3);
+  return Math.round(Math.random() * 2);
 };
 
 const rounds = [];
 
-const gameInfo = async address => {
+const cmpPlayers = (p1, p2) => {
+  return p1[0] === p2[0] && p1[1] === p2[1];
+};
+
+const getGameInfo = async address => {
   const unspent = await web3.getUnspent(address);
   const transactions = await Promise.all(
     unspent.map(u =>
@@ -47,17 +51,26 @@ const gameInfo = async address => {
   );
   const addrs = transactions
     .map(t => t.from)
-    .filter((addr, i, src) => src.indexOf(addr) === i);
+    .filter((addr, i, src) => src.indexOf(addr) === i)
+    .slice(0, 2);
+  const stake = Math.min.apply(
+    null,
+    transactions
+      .filter(t => addrs.indexOf(t.from) > -1)
+      .map(t => Number(t.value))
+  );
 
   const lastRoundNumber = (last(rounds) && last(rounds).number) || 3;
-  const latestRounds =
-    addrs.length < 2 ? [] : rounds.slice(rounds.length - (lastRoundNumber % 3));
+  const newGame = last(rounds) ? last(rounds).number === 3 : true;
+  const latestRounds = newGame
+    ? []
+    : rounds.slice(rounds.length - lastRoundNumber);
 
   return {
     address,
-    players:
-      latestRounds.length > 0 ? latestRounds[0].players : addrs.slice(0, 2),
+    players: addrs,
     rounds: latestRounds,
+    stake,
   };
 };
 
@@ -68,7 +81,7 @@ app.use(
 );
 
 app.get('/games', async (request, response) => {
-  response.send(JSON.stringify([await gameInfo(gameAccount.address)]));
+  response.send(JSON.stringify([await getGameInfo(gameAccount.address)]));
 });
 
 app.post('/requestFunds/:addr', async (request, response, next) => {
@@ -116,17 +129,9 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     return next('Unknown game');
   }
 
-  const unspent = await web3.getUnspent(gameAddr);
-  const transactions = await Promise.all(
-    unspent.map(u =>
-      web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
-    )
-  );
-  const addrs = transactions
-    .map(t => t.from)
-    .filter((addr, i, src) => src.indexOf(addr) === i);
-  if (addrs.length < 2) {
-    return next(`Not enough players (${addrs.length})`);
+  const gameInfo = await getGameInfo(gameAddr);
+  if (gameInfo.players.length < 2) {
+    return next(`Not enough players (${gameInfo.players.length.length})`);
   }
 
   const lastRoundNumber = rounds.length === 0 ? 3 : last(rounds).number;
@@ -137,10 +142,7 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
   ) {
     return next('Wrong round');
   }
-
-  const players =
-    lastRoundNumber === 3 ? addrs.slice(0, 2) : last(rounds).players;
-
+  const { players } = gameInfo;
   const newRound = {
     number: round,
     players,
@@ -150,12 +152,17 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     },
   };
 
+  gameInfo.rounds.push(newRound);
   rounds.push(newRound);
 
   if (round === 3) {
-    const scores = calcScores(
-      rounds.slice(round.length - 3).map(r => r.result)
+    const unspent = await web3.getUnspent(gameAddr);
+    const transactions = await Promise.all(
+      unspent.map(u =>
+        web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
+      )
     );
+    const scores = calcScores(rounds.slice(round.length - 3));
     const distributionTx = calcDistribution(
       scores,
       unspent,
@@ -164,7 +171,12 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     await web3.eth.sendSignedTransaction(distributionTx.toRaw());
   }
 
-  response.send('Ok');
+  response.send(
+    JSON.stringify({
+      status: 'ok',
+      game: gameInfo,
+    })
+  );
 });
 
 app.listen(3005, () => {
@@ -178,7 +190,6 @@ app.use((err, req, res, next) => {
   if (err) {
     res.status(500).send(
       JSON.stringify({
-        type: 'error',
         message: err,
       })
     );
