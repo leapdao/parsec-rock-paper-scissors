@@ -74,8 +74,6 @@
     "preact-compat": "^3.18.2",
     "prop-types": "^15.6.1",
     "react": "^16.4.0",
-    "react-dom": "^16.4.0",
-    "react-router": "^4.3.1",
-    "react-router-dom": "^4.3.1"
+    "react-dom": "^16.4.0"
   }
 }
