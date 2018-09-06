@@ -151,6 +151,13 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
   gameInfo.rounds.push(newRound);
   rounds.push(newRound);
 
+  response.send(
+    JSON.stringify({
+      status: 'ok',
+      game: gameInfo,
+    })
+  );
+
   if (round === 3) {
     const unspent = await web3.getUnspent(gameAddr);
     const transactions = await Promise.all(
@@ -166,13 +173,6 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     ).signAll(gameAccount.privateKey);
     await web3.eth.sendSignedTransaction(distributionTx.toRaw());
   }
-
-  response.send(
-    JSON.stringify({
-      status: 'ok',
-      game: gameInfo,
-    })
-  );
 });
 
 app.listen(3005, () => {

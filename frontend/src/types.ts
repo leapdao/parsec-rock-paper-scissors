@@ -1,9 +1,15 @@
+export type IResult = {
+  [key: string]: number;
+};
+
+export type IScore = {
+  [key: string]: number;
+};
+
 export type IRound = {
   number: number;
   players: string[];
-  result: {
-    [key: string]: number;
-  };
+  result: IResult;
 };
 
 export type IGame = {

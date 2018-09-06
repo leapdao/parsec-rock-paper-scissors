@@ -83,7 +83,7 @@ body {
   margin: 10px 0 0;
 }
 
-.join button {
+button {
   font-size: 2rem;
 
   padding: 5px 10px;
@@ -109,4 +109,32 @@ body {
 .round strong {
   display: block;
   font-size: 3rem;
+}
+
+.winner-wrapper {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+
+  margin: -135px 0 0 -100px;
+
+  text-align: center;
+}
+
+.winner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 15px;
+
+  background-color: #fffbb0;
+  border-radius: 50%;
+}
+
+.winner-pic {
+  font-size: 8rem;
 }

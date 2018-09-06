@@ -16,8 +16,13 @@ export default class Store {
   private waiting: boolean = false;
 
   constructor(public web3: ExtendedWeb3, public account: Account) {
+    this.watch();
+  }
+
+  public watch() {
+    console.log('watch');
     this.loadData();
-    this.interval = setInterval(this.loadData, 2000) as any;
+    this.interval = setInterval(this.loadData, 3000) as any;
   }
 
   private loadBalance() {
@@ -28,6 +33,7 @@ export default class Store {
 
   private loadGame() {
     getGames().then(([game]) => {
+      console.log('loadGame', this.waiting);
       if (!this.waiting) {
         this.game = game;
       }
@@ -36,8 +42,11 @@ export default class Store {
 
   @autobind
   private loadData() {
-    this.loadBalance();
-    this.loadGame();
+    console.log('loadData', this.waiting);
+    if (!this.waiting) {
+      this.loadBalance();
+      this.loadGame();
+    }
   }
 
   public async join(stake) {
@@ -74,6 +83,11 @@ export default class Store {
 
       if (this.game.rounds.length === 3) {
         clearInterval(this.interval);
+
+        setTimeout(() => {
+          console.log('replay');
+          this.watch();
+        }, 10000);
       }
     } finally {
       this.waiting = false;

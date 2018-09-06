@@ -4,9 +4,9 @@ import { observer, inject } from 'mobx-react';
 import Join from './join';
 import Store from '../store';
 import { Fragment } from 'react';
-import { calcScore } from '../../../src/rules';
+import { calcScore, calcScores } from '../../../src/rules';
 import { toJS } from 'mobx';
-import { IRound } from '../types';
+import { IRound, IScore } from '../types';
 
 interface IProps {
   store?: Store;
@@ -41,7 +41,11 @@ export default class Game extends React.Component<IProps, any> {
     const joined = store.game.players.indexOf(store.account.address) > -1;
     const lastRound = last(store.game.rounds);
     const [p1, p2] = store.game.players;
-    const winner = lastRound && getWinner(lastRound);
+    const roundWinner = lastRound && getWinner(lastRound);
+    const scores =
+      store.game.rounds.length > 0
+        ? (calcScores(store.game.rounds) as IScore)
+        : null;
 
     return (
       <div className="game">
@@ -67,13 +71,39 @@ export default class Game extends React.Component<IProps, any> {
             )}
           </div>
         )}
+
+        {store.game.rounds.length === 3 && (
+          <div className="winner-wrapper">
+            <div className="winner">
+              <h3>🎉</h3>
+              {scores[p1] !== scores[p2] && (
+                <div className="winner-pic">
+                  {scores[p1] > scores[p2] ? '🦊' : '🐨'}
+                </div>
+              )}
+
+              {scores[p1] === scores[p2] && (
+                <div className="winner-pic">🦊 🐨</div>
+              )}
+              {scores[p1] !== scores[p2] && store.game.stake * 2}
+            </div>
+
+            <button
+              onClick={() => {
+                store.watch();
+              }}
+            >
+              Ok
+            </button>
+          </div>
+        )}
         <div className="players">
           <div className="player">
             {store.game.players.length >= 1 && <h3>🦊</h3>}
             {lastRound && ICONS[lastRound.result[p1]]}
 
             {p1 &&
-              winner === p1 && (
+              roundWinner === p1 && (
                 <Fragment>
                   <br />
                   🎉
@@ -85,7 +115,7 @@ export default class Game extends React.Component<IProps, any> {
 
             {lastRound && ICONS[lastRound.result[p2]]}
             {p2 &&
-              winner === p2 && (
+              roundWinner === p2 && (
                 <Fragment>
                   <br />
                   🎉
@@ -101,13 +131,16 @@ export default class Game extends React.Component<IProps, any> {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            store.play();
-          }}
-        >
-          Play
-        </button>
+        {store.game.players.length === 2 &&
+          store.game.rounds.length < 3 && (
+            <button
+              onClick={() => {
+                store.play();
+              }}
+            >
+              Play
+            </button>
+          )}
       </div>
     );
   }

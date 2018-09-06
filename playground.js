@@ -36,15 +36,29 @@ async function transfer(acc, to, value, color) {
   return web3.eth.sendSignedTransaction(tx.toRaw());
 }
 
+async function printBalance(label, address) {
+  console.log(`${label} (${address}): ${await web3.eth.getBalance(address)}`);
+}
+
+async function fundTheFaucet() {
+  const balance = await web3.eth.getBalance(faucetAccount.address);
+  if (balance === '0') {
+    await transfer(alice, faucetAccount.address, 1000000, 0);
+  }
+
+  await printBalance('Faucet', faucetAccount.address);
+}
+
 async function setupTheGame() {
   await transfer(P1, GAME_ADDR, 1000, 0);
   // await transfer(P2, GAME_ADDR, 1000, 0);
-  console.log('Game: ', await web3.eth.getBalance(GAME_ADDR));
-  console.log('P1: ', await web3.eth.getBalance(P1.address));
-  console.log('P2: ', await web3.eth.getBalance(P2.address));
+  await printBalance('Game', GAME_ADDR);
+  await printBalance('P1', P1.address);
+  await printBalance('P2', P2.address);
 }
 
 async function run() {
+  await fundTheFaucet();
   await setupTheGame();
   // const unspent = await web3.getUnspent(alice.address);
   // const inputs = helpers.calcInputs(unspent, alice.address, 1000000, 0);
