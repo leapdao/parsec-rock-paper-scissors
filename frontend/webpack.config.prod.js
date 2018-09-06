@@ -39,7 +39,7 @@ module.exports = {
       },
       {
         test: /\.tsx?$/,
-        use: ['cache-loader', 'thread-loader', 'ts-loader'],
+        use: ['cache-loader', 'ts-loader'],
         include: path.resolve(__dirname, 'src'),
       },
       {
