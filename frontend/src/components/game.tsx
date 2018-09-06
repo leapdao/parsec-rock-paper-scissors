@@ -5,8 +5,8 @@ import Join from './join';
 import Store from '../store';
 import { Fragment } from 'react';
 import { calcScore, calcScores } from '../../../src/rules';
-import { toJS } from 'mobx';
 import { IRound, IScore } from '../types';
+import { playerIcon } from '../utils';
 
 interface IProps {
   store?: Store;
@@ -41,6 +41,8 @@ export default class Game extends React.Component<IProps, any> {
     const joined = store.game.players.indexOf(store.account.address) > -1;
     const lastRound = last(store.game.rounds);
     const [p1, p2] = store.game.players;
+    const p1Icon = playerIcon(p1);
+    const p2Icon = playerIcon(p2);
     const roundWinner = lastRound && getWinner(lastRound);
     const scores =
       store.game.rounds.length > 0
@@ -78,12 +80,14 @@ export default class Game extends React.Component<IProps, any> {
               <h3>🎉</h3>
               {scores[p1] !== scores[p2] && (
                 <div className="winner-pic">
-                  {scores[p1] > scores[p2] ? '🦊' : '🐨'}
+                  {scores[p1] > scores[p2] ? p1Icon : p2Icon}
                 </div>
               )}
 
               {scores[p1] === scores[p2] && (
-                <div className="winner-pic">🦊 🐨</div>
+                <div className="winner-pic">
+                  {p1Icon} {p2Icon}
+                </div>
               )}
               {scores[p1] !== scores[p2] && store.game.stake * 2}
             </div>
@@ -99,28 +103,22 @@ export default class Game extends React.Component<IProps, any> {
         )}
         <div className="players">
           <div className="player">
-            {store.game.players.length >= 1 && <h3>🦊</h3>}
-            {lastRound && ICONS[lastRound.result[p1]]}
+            {store.game.players.length >= 1 && <h3>{p1Icon}</h3>}
+            {p1 === store.account.address && '(you)'}
+            <div className="player-result">
+              {lastRound && <strong>{ICONS[lastRound.result[p1]]}</strong>}
 
-            {p1 &&
-              roundWinner === p1 && (
-                <Fragment>
-                  <br />
-                  🎉
-                </Fragment>
-              )}
+              {p1 && roundWinner === p1 && <span>🎉</span>}
+            </div>
           </div>
           <div className="player">
-            {store.game.players.length === 2 && <h3>🐨</h3>}
+            {store.game.players.length === 2 && <h3>{p2Icon}</h3>}
+            {p2 === store.account.address && '(you)'}
 
-            {lastRound && ICONS[lastRound.result[p2]]}
-            {p2 &&
-              roundWinner === p2 && (
-                <Fragment>
-                  <br />
-                  🎉
-                </Fragment>
-              )}
+            <div className="player-result">
+              {lastRound && <strong>{ICONS[lastRound.result[p2]]}</strong>}
+              {p2 && roundWinner === p2 && <span>🎉</span>}
+            </div>
 
             {store.game.players.length === 1 &&
               !joined && (

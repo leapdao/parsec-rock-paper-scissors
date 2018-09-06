@@ -3,6 +3,7 @@ import * as React from 'react';
 import { observable } from 'mobx';
 import { observer, inject } from 'mobx-react';
 import Store from '../store';
+import { playerIcon } from '../utils';
 
 interface IProps {
   title: string;
@@ -26,6 +27,9 @@ export default class Game extends React.Component<IProps, any> {
     return (
       <div className="join-wrapper">
         <div className="join">
+          <div style={{ fontSize: '4rem' }}>
+            {playerIcon(store.account.address)}
+          </div>
           <p>{title}</p>
           <p className="stake">{this.stake}</p>
           {!this.props.stake && (

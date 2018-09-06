@@ -1,5 +1,5 @@
 import autobind from 'autobind-decorator';
-import { observable } from 'mobx';
+import { observable, reaction } from 'mobx';
 import { Account } from 'web3/types';
 import { ExtendedWeb3, Tx, helpers } from 'parsec-lib';
 import { IGame } from './types';
@@ -17,10 +17,21 @@ export default class Store {
 
   constructor(public web3: ExtendedWeb3, public account: Account) {
     this.watch();
+    reaction(() => this.game, this.autoplay);
+  }
+
+  @autobind
+  private autoplay() {
+    if (
+      this.game.players.length === 2 &&
+      this.game.players.indexOf(this.account.address) > -1 &&
+      this.game.rounds.length < 3
+    ) {
+      setTimeout(this.play, this.game.rounds.length === 0 ? 2000 : 5000);
+    }
   }
 
   public watch() {
-    console.log('watch');
     this.loadData();
     this.interval = setInterval(this.loadData, 3000) as any;
   }
@@ -33,7 +44,6 @@ export default class Store {
 
   private loadGame() {
     getGames().then(([game]) => {
-      console.log('loadGame', this.waiting);
       if (!this.waiting) {
         this.game = game;
       }
@@ -42,7 +52,6 @@ export default class Store {
 
   @autobind
   private loadData() {
-    console.log('loadData', this.waiting);
     if (!this.waiting) {
       this.loadBalance();
       this.loadGame();
@@ -71,6 +80,7 @@ export default class Store {
     return receipt;
   }
 
+  @autobind
   public async play() {
     this.waiting = true;
 
@@ -85,7 +95,6 @@ export default class Store {
         clearInterval(this.interval);
 
         setTimeout(() => {
-          console.log('replay');
           this.watch();
         }, 10000);
       }

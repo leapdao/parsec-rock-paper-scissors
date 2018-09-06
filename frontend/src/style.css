@@ -53,6 +53,24 @@ body {
   font-size: 4rem;
 }
 
+.player-result {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.player-result strong {
+  font-size: 10rem;
+}
+
+.player-result span {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+}
+
 .join-popover {
   position: absolute;
   z-index: 1;
