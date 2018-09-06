@@ -62,6 +62,11 @@ body {
 
 .player-result strong {
   font-size: 10rem;
+  display: block;
+}
+
+.player:first-child .player-result strong {
+  transform: scaleX(-1);
 }
 
 .player-result span {
