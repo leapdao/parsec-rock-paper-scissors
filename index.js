@@ -39,10 +39,16 @@ const rockPaperScissors = () => {
 const rounds = [];
 
 const getGameInfo = async address => {
-  const distribution = (last(rounds) && last(rounds).distribution) || 0;
-  const distributionTx =
-    distribution &&
-    (await web3.eth.getTransaction(Tx.fromRaw(distribution).hash()));
+  const distribution =
+    last(rounds) &&
+    last(rounds).distribution &&
+    Tx.fromRaw(last(rounds).distribution);
+  let tx = distribution && (await web3.eth.getTransaction(distribution.hash()));
+
+  if (!tx && distribution) {
+    tx = await web3.eth.sendSignedTransaction(distribution.toRaw());
+  }
+
   const unspent = await web3.getUnspent(address);
   const transactions = (await Promise.all(
     unspent.map(u =>
@@ -62,7 +68,7 @@ const getGameInfo = async address => {
 
   const lastRoundNumber = (last(rounds) && last(rounds).number) || 3;
 
-  const newGame = lastRoundNumber === 3 && addrs.length > 0 && distributionTx;
+  const newGame = lastRoundNumber === 3 && addrs.length > 0 && tx;
   const latestRounds = newGame
     ? []
     : rounds.slice(rounds.length - lastRoundNumber);
@@ -130,6 +136,12 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     return next('Unknown game');
   }
 
+  const unspent = await web3.getUnspent(gameAddr);
+  const transactions = await Promise.all(
+    unspent.map(u =>
+      web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
+    )
+  );
   const gameInfo = await getGameInfo(gameAddr);
   if (gameInfo.players.length < 2) {
     return next(`Not enough players (${gameInfo.players.length.length})`);
@@ -154,16 +166,9 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     },
   };
 
+  rounds.push(newRound);
   if (round === 3) {
-    const unspent = await web3.getUnspent(gameAddr);
-    const transactions = await Promise.all(
-      unspent.map(u =>
-        web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
-      )
-    );
-    const scores = calcScores(
-      rounds.slice(round.length - 3).concat([newRound])
-    );
+    const scores = calcScores(rounds.slice(rounds.length - 3));
     const distributionTx = calcDistribution(
       scores,
       unspent,
@@ -171,11 +176,8 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
     ).signAll(gameAccount.privateKey);
 
     newRound.distribution = `0x${distributionTx.toRaw().toString('hex')}`;
-    rounds.push(newRound);
 
     await web3.eth.sendSignedTransaction(distributionTx.toRaw());
-  } else {
-    rounds.push(newRound);
   }
 
   response.send(

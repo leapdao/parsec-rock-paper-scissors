@@ -42,7 +42,7 @@ export default class Store {
       this.playing = true;
       this.interval = setInterval(() => {
         this.loadData().then(data => this.updateData(data));
-      }, 1000) as any;
+      }, 500) as any;
     });
   }
 
@@ -70,7 +70,6 @@ export default class Store {
     if (game.rounds.length > 0 && last(game.rounds).distribution) {
       last(game.rounds).distribution = Tx.fromRaw(last(game.rounds)
         .distribution as string);
-      console.log(last(game.rounds).distribution);
     }
     if (
       this.game &&
