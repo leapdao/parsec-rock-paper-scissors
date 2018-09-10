@@ -3,7 +3,7 @@
 const Web3 = require('web3');
 const { helpers, Tx } = require('parsec-lib');
 
-const PLASMA_PROVIDER = 'https://testnet-1.parseclabs.org';
+const PLASMA_PROVIDER = 'https://testnet-2.parseclabs.org';
 const web3 = helpers.extendWeb3(new Web3(PLASMA_PROVIDER));
 
 const faucetPriv =
@@ -41,6 +41,8 @@ async function printBalance(label, address) {
 }
 
 async function fundTheFaucet() {
+  await printBalance('Alice', alice.address);
+
   const balance = await web3.eth.getBalance(faucetAccount.address);
   if (balance === '0') {
     await transfer(alice, faucetAccount.address, 1000000, 0);
@@ -50,8 +52,10 @@ async function fundTheFaucet() {
 }
 
 async function setupTheGame() {
+  await transfer(faucetAccount, P1.address, 1000, 0);
+  await transfer(faucetAccount, P2.address, 1000, 0);
   await transfer(P1, GAME_ADDR, 1000, 0);
-  // await transfer(P2, GAME_ADDR, 1000, 0);
+  await transfer(P2, GAME_ADDR, 1000, 0);
   await printBalance('Game', GAME_ADDR);
   await printBalance('P1', P1.address);
   await printBalance('P2', P2.address);

@@ -15,7 +15,7 @@ import App from './components/app';
 import { getAccount, requestFaucet } from './wallet';
 import Store from './store';
 
-const PARSEC_PROVIDER = 'https://testnet-1.parseclabs.org';
+const PARSEC_PROVIDER = 'https://testnet-2.parseclabs.org';
 const web3 = helpers.extendWeb3(new (Web3 as any)(PARSEC_PROVIDER));
 
 const account = getAccount(web3);

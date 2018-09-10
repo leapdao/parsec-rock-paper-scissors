@@ -10,6 +10,8 @@ export type IRound = {
   number: number;
   players: string[];
   result: IResult;
+  stake: number;
+  distribution?: string;
 };
 
 export type IGame = {

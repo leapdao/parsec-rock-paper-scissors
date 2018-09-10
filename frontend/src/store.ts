@@ -1,9 +1,10 @@
 import autobind from 'autobind-decorator';
-import { observable, reaction } from 'mobx';
+import { observable, reaction, toJS, computed, action } from 'mobx';
 import { Account } from 'web3/types';
 import { ExtendedWeb3, Tx, helpers } from 'parsec-lib';
 import { IGame } from './types';
 import { getGames, playRound } from './backend';
+import { last } from './utils';
 
 export default class Store {
   @observable
@@ -12,8 +13,10 @@ export default class Store {
   @observable
   public game: IGame;
 
+  @observable
+  public playing = false;
+
   private interval: number;
-  private waiting: boolean = false;
 
   constructor(public web3: ExtendedWeb3, public account: Account) {
     this.watch();
@@ -22,40 +25,91 @@ export default class Store {
 
   @autobind
   private autoplay() {
-    if (
-      this.game.players.length === 2 &&
-      this.game.players.indexOf(this.account.address) > -1 &&
-      this.game.rounds.length < 3
-    ) {
-      setTimeout(this.play, this.game.rounds.length === 0 ? 2000 : 5000);
+    if (this.game.players.length === 2 && this.game.rounds.length < 3) {
+      setTimeout(
+        this.play.bind(
+          this,
+          this.game.rounds.length === 0 ? 1 : last(this.game.rounds).number + 1
+        ),
+        this.game.rounds.length === 0 ? 2000 : 5000
+      );
     }
   }
 
-  public watch() {
-    this.loadData();
-    this.interval = setInterval(this.loadData, 3000) as any;
+  public async watch() {
+    this.loadData().then(() => {
+      this.playing = true;
+      this.interval = setInterval(this.loadData, 1000) as any;
+    });
   }
 
   private loadBalance() {
-    this.web3.eth.getBalance(this.account.address).then(balance => {
+    return this.web3.eth.getBalance(this.account.address).then(balance => {
       this.balance = balance;
     });
   }
 
+  @action
+  private updateGame(game: IGame) {
+    if (
+      this.game &&
+      !(this.game.rounds.length > 0 && last(this.game.rounds).distribution) &&
+      (game.rounds.length > 0 && last(game.rounds).distribution) &&
+      this.playing
+    ) {
+      this.playing = false;
+      clearInterval(this.interval);
+      this.waitForDistribution(last(game.rounds).distribution);
+    }
+    this.game = game;
+  }
+
   private loadGame() {
-    getGames().then(([game]) => {
-      if (!this.waiting) {
-        this.game = game;
-      }
+    return getGames().then(([game]) => {
+      this.updateGame(game);
     });
+  }
+
+  private waitForDistribution(txHash) {
+    setTimeout(() => {
+      const checkDistribution = async () => {
+        const tx = await this.web3.eth.getTransaction(txHash);
+        if (tx) {
+          this.watch();
+        } else {
+          setTimeout(checkDistribution, 500);
+        }
+      };
+      checkDistribution();
+    }, 10000);
+  }
+
+  @computed
+  get lastRound() {
+    if (this.game) {
+      return last(this.game.rounds);
+    }
+
+    return undefined;
+  }
+
+  @computed
+  public get stake() {
+    return !this.playing && this.lastRound
+      ? this.lastRound.stake
+      : this.game.stake;
+  }
+
+  @computed
+  public get players() {
+    return !this.playing && this.lastRound
+      ? this.lastRound.players
+      : this.game.players;
   }
 
   @autobind
   private loadData() {
-    if (!this.waiting) {
-      this.loadBalance();
-      this.loadGame();
-    }
+    return Promise.all([this.loadBalance(), this.loadGame()]);
   }
 
   public async join(stake) {
@@ -81,27 +135,14 @@ export default class Store {
   }
 
   @autobind
-  public async play() {
-    this.waiting = true;
-
+  public async play(round) {
     try {
-      const { game } = await playRound(
-        this.game.address,
-        this.game.rounds.length + 1
-      );
-      this.game = game;
-
-      if (this.game.rounds.length === 3) {
-        clearInterval(this.interval);
-
-        setTimeout(() => {
-          this.watch();
-        }, 10000);
+      if (
+        !this.lastRound ||
+        (this.lastRound && this.lastRound.number !== round)
+      ) {
+        await playRound(this.game.address, round);
       }
-    } finally {
-      this.waiting = false;
-    }
-
-    // this.loadData();
+    } catch (err) {}
   }
 }

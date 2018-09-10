@@ -6,17 +6,14 @@ import Store from '../store';
 import { Fragment } from 'react';
 import { calcScore, calcScores } from '../../../src/rules';
 import { IRound, IScore } from '../types';
-import { playerIcon } from '../utils';
+import { playerIcon, last } from '../utils';
+import { toJS } from 'mobx';
 
 interface IProps {
   store?: Store;
 }
 
 const ICONS = ['✊', '✌', '✋'];
-
-function last<T>(arr: T[]): T {
-  return arr[arr.length - 1];
-}
 
 const getWinner = (round: IRound) => {
   const [p1, p2] = round.players;
@@ -38,108 +35,123 @@ export default class Game extends React.Component<IProps, any> {
     if (!store) {
       return null;
     }
-    const joined = store.game.players.indexOf(store.account.address) > -1;
-    const lastRound = last(store.game.rounds);
-    const [p1, p2] = store.game.players;
+    const joined = store.players.indexOf(store.account.address) > -1;
+    const [p1, p2] = store.players;
     const p1Icon = playerIcon(p1);
     const p2Icon = playerIcon(p2);
-    const roundWinner = lastRound && getWinner(lastRound);
+    const roundWinner = store.lastRound && getWinner(store.lastRound);
     const scores =
       store.game.rounds.length > 0
         ? (calcScores(store.game.rounds) as IScore)
         : null;
 
     return (
-      <div className="game">
-        {store.game.players.length === 0 && (
-          <div className="join-popover">
-            <Join title="No one joined the game yet" maxStake={store.balance} />
-          </div>
-        )}
-        {store.game.players.length === 2 && (
-          <div className="round">
-            {!lastRound && (
-              <Fragment>
-                waiting
-                <br />
-                for start
-              </Fragment>
+      <Fragment>
+        <div className="game">
+          {store.players.length === 0 && (
+            <div className="join-popover">
+              <Join
+                title="No one joined the game yet"
+                maxStake={store.balance}
+              />
+            </div>
+          )}
+          {store.players.length === 2 &&
+            store.playing && (
+              <div className="round">
+                {!store.lastRound && (
+                  <Fragment>
+                    waiting
+                    <br />
+                    for start
+                  </Fragment>
+                )}
+                {store.lastRound && (
+                  <Fragment>
+                    <strong>{store.lastRound.number}</strong>
+                    Round
+                  </Fragment>
+                )}
+              </div>
             )}
-            {lastRound && (
-              <Fragment>
-                <strong>{lastRound.number}</strong>
-                Round
-              </Fragment>
+
+          {!store.playing &&
+            store.game.rounds.length === 3 && (
+              <div className="winner-wrapper">
+                <div className="winner">
+                  <h3>🎉</h3>
+                  {scores[p1] !== scores[p2] && (
+                    <div className="winner-pic">
+                      {scores[p1] > scores[p2] ? p1Icon : p2Icon}
+                    </div>
+                  )}
+
+                  {scores[p1] === scores[p2] && (
+                    <div className="winner-pic">
+                      {p1Icon} {p2Icon}
+                    </div>
+                  )}
+                  {scores[p1] !== scores[p2] && store.stake * 2}
+                </div>
+
+                <button
+                  onClick={() => {
+                    store.watch();
+                  }}
+                >
+                  Ok
+                </button>
+              </div>
             )}
-          </div>
-        )}
+          <div className="players">
+            <div className="player">
+              {store.players.length >= 1 && <h3>{p1Icon}</h3>}
+              {p1 === store.account.address && '(you)'}
+              <div className="player-result">
+                {store.lastRound && (
+                  <strong>{ICONS[store.lastRound.result[p1]]}</strong>
+                )}
 
-        {store.game.rounds.length === 3 && (
-          <div className="winner-wrapper">
-            <div className="winner">
-              <h3>🎉</h3>
-              {scores[p1] !== scores[p2] && (
-                <div className="winner-pic">
-                  {scores[p1] > scores[p2] ? p1Icon : p2Icon}
-                </div>
-              )}
-
-              {scores[p1] === scores[p2] && (
-                <div className="winner-pic">
-                  {p1Icon} {p2Icon}
-                </div>
-              )}
-              {scores[p1] !== scores[p2] && store.game.stake * 2}
+                {p1 && roundWinner === p1 && <span>🎉</span>}
+              </div>
             </div>
+            <div className="player">
+              {store.players.length === 2 && <h3>{p2Icon}</h3>}
+              {p2 === store.account.address && '(you)'}
 
-            <button
-              onClick={() => {
-                store.watch();
-              }}
-            >
-              Ok
-            </button>
-          </div>
-        )}
-        <div className="players">
-          <div className="player">
-            {store.game.players.length >= 1 && <h3>{p1Icon}</h3>}
-            {p1 === store.account.address && '(you)'}
-            <div className="player-result">
-              {lastRound && <strong>{ICONS[lastRound.result[p1]]}</strong>}
+              <div className="player-result">
+                {store.lastRound && (
+                  <strong>{ICONS[store.lastRound.result[p2]]}</strong>
+                )}
+                {p2 && roundWinner === p2 && <span>🎉</span>}
+              </div>
 
-              {p1 && roundWinner === p1 && <span>🎉</span>}
+              {store.players.length === 1 &&
+                !joined && (
+                  <div className="join-popover">
+                    <Join title="Join the game" stake={store.stake} />
+                  </div>
+                )}
             </div>
-          </div>
-          <div className="player">
-            {store.game.players.length === 2 && <h3>{p2Icon}</h3>}
-            {p2 === store.account.address && '(you)'}
-
-            <div className="player-result">
-              {lastRound && <strong>{ICONS[lastRound.result[p2]]}</strong>}
-              {p2 && roundWinner === p2 && <span>🎉</span>}
-            </div>
-
-            {store.game.players.length === 1 &&
-              !joined && (
-                <div className="join-popover">
-                  <Join title="Join the game" stake={store.game.stake} />
-                </div>
-              )}
           </div>
         </div>
-
-        {store.game.players.length === 2 &&
-          store.game.rounds.length < 3 && (
+        {false && (
+          <Fragment>
             <button
               onClick={() => {
-                store.play();
+                store.play(
+                  store.game.rounds.length === 0
+                    ? 1
+                    : last(store.game.rounds).number + 1
+                );
               }}
             >
               Play
             </button>
-          )}
-      </div>
+            <pre>{JSON.stringify(store.game, undefined, 2)}</pre>
+          </Fragment>
+        )}
+      </Fragment>
     );
   }
 }
