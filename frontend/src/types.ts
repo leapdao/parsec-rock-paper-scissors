@@ -1,3 +1,5 @@
+import { Tx } from 'parsec-lib';
+
 export type IResult = {
   [key: string]: number;
 };
@@ -11,7 +13,7 @@ export type IRound = {
   players: string[];
   result: IResult;
   stake: number;
-  distribution?: string;
+  distribution?: string | Tx<any>;
 };
 
 export type IGame = {

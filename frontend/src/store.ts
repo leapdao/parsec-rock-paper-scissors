@@ -1,7 +1,7 @@
 import autobind from 'autobind-decorator';
 import { observable, reaction, toJS, computed, action } from 'mobx';
 import { Account } from 'web3/types';
-import { ExtendedWeb3, Tx, helpers } from 'parsec-lib';
+import { ExtendedWeb3, Tx, helpers, Type } from 'parsec-lib';
 import { IGame } from './types';
 import { getGames, playRound } from './backend';
 import { last } from './utils';
@@ -37,20 +37,41 @@ export default class Store {
   }
 
   public async watch() {
-    this.loadData().then(() => {
+    this.loadData().then(data => {
+      this.updateData(data);
       this.playing = true;
-      this.interval = setInterval(this.loadData, 1000) as any;
+      this.interval = setInterval(() => {
+        this.loadData().then(data => this.updateData(data));
+      }, 1000) as any;
     });
   }
 
+  @autobind
+  private loadData() {
+    return Promise.all([this.loadBalance(), this.loadGame()]);
+  }
+
   private loadBalance() {
-    return this.web3.eth.getBalance(this.account.address).then(balance => {
-      this.balance = balance;
-    });
+    return this.web3.eth.getBalance(this.account.address);
+  }
+
+  private loadGame() {
+    return getGames().then(([game]) => game);
+  }
+
+  @action
+  private updateData([balance, game]: [number, IGame]) {
+    this.balance = balance;
+    this.updateGame(game);
   }
 
   @action
   private updateGame(game: IGame) {
+    if (game.rounds.length > 0 && last(game.rounds).distribution) {
+      last(game.rounds).distribution = Tx.fromRaw(last(game.rounds)
+        .distribution as string);
+      console.log(last(game.rounds).distribution);
+    }
     if (
       this.game &&
       !(this.game.rounds.length > 0 && last(this.game.rounds).distribution) &&
@@ -59,26 +80,23 @@ export default class Store {
     ) {
       this.playing = false;
       clearInterval(this.interval);
-      this.waitForDistribution(last(game.rounds).distribution);
+      this.waitForDistribution(last(game.rounds).distribution as Tx<
+        Type.TRANSFER
+      >);
     }
     this.game = game;
   }
 
-  private loadGame() {
-    return getGames().then(([game]) => {
-      this.updateGame(game);
-    });
-  }
-
-  private waitForDistribution(txHash) {
+  private waitForDistribution(tx: Tx<Type.TRANSFER>) {
     setTimeout(() => {
       const checkDistribution = async () => {
-        const tx = await this.web3.eth.getTransaction(txHash);
-        if (tx) {
-          this.watch();
-        } else {
-          setTimeout(checkDistribution, 500);
-        }
+        this.web3.eth.getTransaction(tx.hash()).then(tx => {
+          if (tx) {
+            this.watch();
+          } else {
+            setTimeout(checkDistribution, 500);
+          }
+        });
       };
       checkDistribution();
     }, 10000);
@@ -107,11 +125,6 @@ export default class Store {
       : this.game.players;
   }
 
-  @autobind
-  private loadData() {
-    return Promise.all([this.loadBalance(), this.loadGame()]);
-  }
-
   public async join(stake) {
     const unspent = await this.web3.getUnspent(this.account.address);
     const inputs = helpers.calcInputs(unspent, this.account.address, stake, 0);
@@ -129,7 +142,8 @@ export default class Store {
       tx.toRaw() as any
     );
 
-    this.loadData();
+    const data = await this.loadData();
+    this.updateData(data);
 
     return receipt;
   }

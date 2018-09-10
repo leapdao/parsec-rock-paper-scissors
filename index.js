@@ -41,7 +41,8 @@ const rounds = [];
 const getGameInfo = async address => {
   const distribution = (last(rounds) && last(rounds).distribution) || 0;
   const distributionTx =
-    distribution && (await web3.eth.getTransaction(distribution));
+    distribution &&
+    (await web3.eth.getTransaction(Tx.fromRaw(distribution).hash()));
   const unspent = await web3.getUnspent(address);
   const transactions = (await Promise.all(
     unspent.map(u =>
@@ -169,7 +170,7 @@ app.post('/round/:gameAddr/:round', async (request, response, next) => {
       transactions
     ).signAll(gameAccount.privateKey);
 
-    newRound.distribution = distributionTx.hash();
+    newRound.distribution = `0x${distributionTx.toRaw().toString('hex')}`;
     rounds.push(newRound);
 
     await web3.eth.sendSignedTransaction(distributionTx.toRaw());

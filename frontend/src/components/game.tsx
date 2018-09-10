@@ -94,13 +94,15 @@ export default class Game extends React.Component<IProps, any> {
                   {scores[p1] !== scores[p2] && store.stake * 2}
                 </div>
 
-                <button
-                  onClick={() => {
-                    store.watch();
-                  }}
-                >
-                  Ok
-                </button>
+                {false && (
+                  <button
+                    onClick={() => {
+                      store.watch();
+                    }}
+                  >
+                    Ok
+                  </button>
+                )}
               </div>
             )}
           <div className="players">
