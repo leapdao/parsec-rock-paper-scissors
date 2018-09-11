@@ -3,7 +3,7 @@ import { observable, reaction, toJS, computed, action } from 'mobx';
 import { Account } from 'web3/types';
 import { ExtendedWeb3, Tx, helpers, Type } from 'parsec-lib';
 import { IGame } from './types';
-import { getGames, playRound } from './backend';
+import { getGames, submitReceipt } from './backend';
 import { last } from './utils';
 
 export default class Store {
@@ -20,20 +20,6 @@ export default class Store {
 
   constructor(public web3: ExtendedWeb3, public account: Account) {
     this.watch();
-    reaction(() => this.game, this.autoplay);
-  }
-
-  @autobind
-  private autoplay() {
-    if (this.game.players.length === 2 && this.game.rounds.length < 3) {
-      setTimeout(
-        this.play.bind(
-          this,
-          this.game.rounds.length === 0 ? 1 : last(this.game.rounds).number + 1
-        ),
-        this.game.rounds.length === 0 ? 2000 : 5000
-      );
-    }
   }
 
   public async watch() {
@@ -149,13 +135,13 @@ export default class Store {
 
   @autobind
   public async play(round) {
-    try {
-      if (
-        !this.lastRound ||
-        (this.lastRound && this.lastRound.number !== round)
-      ) {
-        await playRound(this.game.address, round);
-      }
-    } catch (err) {}
+    // try {
+    //   if (
+    //     !this.lastRound ||
+    //     (this.lastRound && this.lastRound.number !== round)
+    //   ) {
+    //     await playRound(this.game.address, round);
+    //   }
+    // } catch (err) {}
   }
 }
