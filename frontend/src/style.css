@@ -111,10 +111,17 @@ button {
 
   padding: 5px 10px;
 
+  cursor: pointer;
+  outline: none;
+
   color: #fff;
   border: 0;
   background: #0cf;
   border-radius: 4px;
+}
+
+button:disabled {
+  opacity: 0.6;
 }
 
 .round {
@@ -160,4 +167,21 @@ button {
 
 .winner-pic {
   font-size: 8rem;
+}
+
+.select-pane {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  padding: 10px;
+}
+
+.select-pane button {
+  background-color: transparent;
+  border: 1px solid #0cf;
+}
+
+.select-pane button + button {
+  margin-left: 10px;
 }

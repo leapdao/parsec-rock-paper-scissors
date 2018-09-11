@@ -8,6 +8,7 @@ import { calcScore, calcScores } from '../../../src/rules';
 import { IRound, IScore } from '../types';
 import { playerIcon, last } from '../utils';
 import { toJS } from 'mobx';
+import { VALUES } from '../../../src/constants';
 
 interface IProps {
   store?: Store;
@@ -35,10 +36,9 @@ export default class Game extends React.Component<IProps, any> {
     if (!store) {
       return null;
     }
-    const joined = store.players.indexOf(store.account.address) > -1;
+    const address = store.account.address.toLowerCase();
+    const joined = store.players.indexOf(address) > -1;
     const [p1, p2] = store.players;
-    const p1Icon = playerIcon(p1);
-    const p2Icon = playerIcon(p2);
     const roundWinner = store.lastRound && getWinner(store.lastRound);
     const scores =
       store.game.rounds.length > 0
@@ -59,19 +59,10 @@ export default class Game extends React.Component<IProps, any> {
           {store.players.length === 2 &&
             store.playing && (
               <div className="round">
-                {!store.lastRound && (
-                  <Fragment>
-                    waiting
-                    <br />
-                    for start
-                  </Fragment>
-                )}
-                {store.lastRound && (
-                  <Fragment>
-                    <strong>{store.lastRound.number}</strong>
-                    Round
-                  </Fragment>
-                )}
+                <strong>
+                  {store.lastRound ? store.lastRound.number + 1 : 1}
+                </strong>
+                Round
               </div>
             )}
 
@@ -82,74 +73,95 @@ export default class Game extends React.Component<IProps, any> {
                   <h3>🎉</h3>
                   {scores[p1] !== scores[p2] && (
                     <div className="winner-pic">
-                      {scores[p1] > scores[p2] ? p1Icon : p2Icon}
+                      {scores[p1] > scores[p2]
+                        ? playerIcon(p1)
+                        : playerIcon(p2)}
                     </div>
                   )}
 
                   {scores[p1] === scores[p2] && (
                     <div className="winner-pic">
-                      {p1Icon} {p2Icon}
+                      {playerIcon(p1)} {playerIcon(p2)}
                     </div>
                   )}
                   {scores[p1] !== scores[p2] && store.stake * 2}
                 </div>
-
-                {false && (
-                  <button
-                    onClick={() => {
-                      store.watch();
-                    }}
-                  >
-                    Ok
-                  </button>
-                )}
               </div>
             )}
           <div className="players">
-            <div className="player">
-              {store.players.length >= 1 && <h3>{p1Icon}</h3>}
-              {p1 === store.account.address && '(you)'}
-              <div className="player-result">
-                {store.lastRound && (
-                  <strong>{ICONS[store.lastRound.result[p1]]}</strong>
-                )}
+            {[0, 1].map(i => (
+              <div className="player" key={i}>
+                {store.players[i] && <h3>{playerIcon(store.players[i])}</h3>}
+                {store.players[i] === address && '(you)'}
+                <div className="player-result">
+                  {store.lastRound &&
+                    !store.move && (
+                      <strong>
+                        {ICONS[store.lastRound.result[store.players[i]]]}
+                      </strong>
+                    )}
 
-                {p1 && roundWinner === p1 && <span>🎉</span>}
+                  {store.move &&
+                    store.players[i] === address && (
+                      <strong>{ICONS[store.move.value]}</strong>
+                    )}
+
+                  {store.players[i] &&
+                    !store.move &&
+                    roundWinner === store.players[i] && <span>🎉</span>}
+                </div>
+
+                {i > 0 &&
+                  store.players.length > 0 &&
+                  i >= store.players.length &&
+                  !joined && (
+                    <div className="join-popover">
+                      <Join title="Join the game" stake={store.stake} />
+                    </div>
+                  )}
+
+                {store.game.rounds.length < 3 &&
+                  store.game.players.length === 2 && (
+                    <Fragment>
+                      {store.players[i] !== address && (
+                        <div className="select-pane">Waiting for a move...</div>
+                      )}
+                      {store.players[i] === address && (
+                        <div className="select-pane">
+                          {[VALUES.ROCK, VALUES.PAPER, VALUES.SCISSORS].map(
+                            v => (
+                              <button
+                                key={v}
+                                disabled={!!store.move}
+                                style={{
+                                  backgroundColor:
+                                    store.move && store.move.value === v
+                                      ? 'rgba(35, 205, 253, 0.2)'
+                                      : 'transparent',
+                                }}
+                                onClick={() => {
+                                  store.makeMove(
+                                    store.lastRound
+                                      ? store.lastRound.number + 1
+                                      : 1,
+                                    v
+                                  );
+                                }}
+                              >
+                                {ICONS[v]}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </Fragment>
+                  )}
               </div>
-            </div>
-            <div className="player">
-              {store.players.length === 2 && <h3>{p2Icon}</h3>}
-              {p2 === store.account.address && '(you)'}
-
-              <div className="player-result">
-                {store.lastRound && (
-                  <strong>{ICONS[store.lastRound.result[p2]]}</strong>
-                )}
-                {p2 && roundWinner === p2 && <span>🎉</span>}
-              </div>
-
-              {store.players.length === 1 &&
-                !joined && (
-                  <div className="join-popover">
-                    <Join title="Join the game" stake={store.stake} />
-                  </div>
-                )}
-            </div>
+            ))}
           </div>
         </div>
         {false && (
           <Fragment>
-            <button
-              onClick={() => {
-                store.play(
-                  store.game.rounds.length === 0
-                    ? 1
-                    : last(store.game.rounds).number + 1
-                );
-              }}
-            >
-              Play
-            </button>
             <pre>{JSON.stringify(store.game, undefined, 2)}</pre>
           </Fragment>
         )}

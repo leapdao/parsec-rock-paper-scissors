@@ -3,8 +3,14 @@ import { observable, reaction, toJS, computed, action } from 'mobx';
 import { Account } from 'web3/types';
 import { ExtendedWeb3, Tx, helpers, Type } from 'parsec-lib';
 import { IGame } from './types';
+import * as Receipt from '../../src/receipt';
 import { getGames, submitReceipt } from './backend';
 import { last } from './utils';
+
+type Move = {
+  value: number;
+  round: number;
+};
 
 export default class Store {
   @observable
@@ -15,6 +21,9 @@ export default class Store {
 
   @observable
   public playing = false;
+
+  @observable
+  public move: Move | null = null;
 
   private interval: number;
 
@@ -68,6 +77,13 @@ export default class Store {
       this.waitForDistribution(last(game.rounds).distribution as Tx<
         Type.TRANSFER
       >);
+    }
+    if (
+      last(game.rounds) &&
+      this.move &&
+      this.move.round === last(game.rounds).number
+    ) {
+      this.move = null;
     }
     this.game = game;
   }
@@ -133,15 +149,10 @@ export default class Store {
     return receipt;
   }
 
-  @autobind
-  public async play(round) {
-    // try {
-    //   if (
-    //     !this.lastRound ||
-    //     (this.lastRound && this.lastRound.number !== round)
-    //   ) {
-    //     await playRound(this.game.address, round);
-    //   }
-    // } catch (err) {}
+  @action
+  public async makeMove(round: number, value: number) {
+    this.move = { round, value };
+    const receipt = Receipt.create(round, value, this.account.privateKey);
+    await submitReceipt(this.game.address, receipt);
   }
 }
