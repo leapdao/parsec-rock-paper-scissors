@@ -2,6 +2,7 @@
 
 const Web3 = require('web3');
 const { helpers, Tx } = require('parsec-lib');
+const Receipt = require('./src/receipt');
 
 const PLASMA_PROVIDER = 'https://testnet-2.parseclabs.org';
 const web3 = helpers.extendWeb3(new Web3(PLASMA_PROVIDER));
@@ -61,9 +62,17 @@ async function setupTheGame() {
   await printBalance('P2', P2.address);
 }
 
+async function signRecover() {
+  const receipt = Receipt.create(2, faucetPriv);
+  console.log(
+    Receipt.parse(receipt).signer.toLowerCase(),
+    faucetAccount.address.toLowerCase()
+  );
+}
+
 async function run() {
   await fundTheFaucet();
-  await setupTheGame();
+  // await setupTheGame();
   // const unspent = await web3.getUnspent(alice.address);
   // const inputs = helpers.calcInputs(unspent, alice.address, 1000000, 0);
   // const outputs = helpers.calcOutputs(
