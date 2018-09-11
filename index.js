@@ -56,6 +56,7 @@ const getGameInfo = async address => {
   let tx = distribution && (await web3.eth.getTransaction(distribution.hash()));
 
   if (!tx && distribution) {
+    console.log(distribution.toJSON());
     tx = await web3.eth.sendSignedTransaction(distribution.toRaw());
   }
 
@@ -152,13 +153,11 @@ app.post('/submitReceipt/:gameAddr', async (request, response, next) => {
     }
 
     const unspent = await web3.getUnspent(gameAddr);
-    console.log(unspent);
     const transactions = await Promise.all(
       unspent.map(u =>
         web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
       )
     );
-    console.log(transactions);
     const gameInfo = await getGameInfo(gameAddr);
     if (gameInfo.players.indexOf(signer) === -1) {
       return next('Not a player');
@@ -198,8 +197,6 @@ app.post('/submitReceipt/:gameAddr', async (request, response, next) => {
 
       await web3.eth.sendSignedTransaction(distributionTx.toRaw());
     }
-
-    console.log(rounds);
   } catch (err) {
     next(err);
   }

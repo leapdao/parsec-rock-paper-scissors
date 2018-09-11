@@ -123,9 +123,12 @@ export default class Game extends React.Component<IProps, any> {
                 {store.game.rounds.length < 3 &&
                   store.game.players.length === 2 && (
                     <Fragment>
-                      {store.players[i] !== address && (
-                        <div className="select-pane">Waiting for a move...</div>
-                      )}
+                      {store.players[i] !== address &&
+                        store.move && (
+                          <div className="select-pane">
+                            Waiting for a move...
+                          </div>
+                        )}
                       {store.players[i] === address && (
                         <div className="select-pane">
                           {[VALUES.ROCK, VALUES.PAPER, VALUES.SCISSORS].map(
