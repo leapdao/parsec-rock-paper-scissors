@@ -56,7 +56,6 @@ const getGameInfo = async address => {
   let tx = distribution && (await web3.eth.getTransaction(distribution.hash()));
 
   if (!tx && distribution) {
-    console.log(distribution.toJSON());
     tx = await web3.eth.sendSignedTransaction(distribution.toRaw());
   }
 
@@ -102,6 +101,10 @@ app.use(jsonParser());
 
 app.get('/games', async (request, response) => {
   response.send(JSON.stringify([await getGameInfo(gameAccount.address)]));
+});
+
+app.get('/state', async (request, response) => {
+  response.send(JSON.stringify(rounds));
 });
 
 app.post('/requestFunds/:addr', async (request, response, next) => {

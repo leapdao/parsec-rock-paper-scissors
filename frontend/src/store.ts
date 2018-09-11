@@ -100,7 +100,7 @@ export default class Store {
         });
       };
       checkDistribution();
-    }, 10000);
+    }, 7000);
   }
 
   @computed
