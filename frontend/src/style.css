@@ -1,0 +1,187 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 10px;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+}
+
+.app {
+  font-size: 1.8rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+
+.app h1 {
+  font-size: 5rem;
+
+  padding: 20px 0 30px;
+
+  text-align: center;
+}
+
+.game {
+  position: relative;
+}
+
+.players {
+  display: flex;
+}
+
+.player {
+  position: relative;
+
+  width: 50%;
+  margin: 5px;
+  min-height: 420px;
+  padding: 50px 20px;
+
+  text-align: center;
+
+  background-color: #efefef;
+}
+
+.player h3 {
+  font-size: 4rem;
+}
+
+.player-result {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.player-result strong {
+  font-size: 10rem;
+  display: block;
+}
+
+.player:first-child .player-result strong {
+  transform: scaleX(-1);
+}
+
+.player-result span {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+}
+
+.join-popover {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
+}
+
+.join-wrapper {
+  text-align: center;
+}
+
+.join {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  padding: 20px 40px 30px;
+
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.join input {
+  margin: 0 0 10px;
+}
+
+.join .stake {
+  margin: 10px 0 0;
+}
+
+button {
+  font-size: 2rem;
+
+  padding: 5px 10px;
+
+  cursor: pointer;
+  outline: none;
+
+  color: #fff;
+  border: 0;
+  background: #0cf;
+  border-radius: 4px;
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+.round {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  left: 50%;
+
+  text-align: center;
+  text-transform: lowercase;
+
+  transform: translateX(-50%);
+}
+
+.round strong {
+  display: block;
+  font-size: 3rem;
+}
+
+.winner-wrapper {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+
+  margin: -135px 0 0 -100px;
+
+  text-align: center;
+}
+
+.winner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 15px;
+
+  background-color: #fffbb0;
+  border-radius: 50%;
+}
+
+.winner-pic {
+  font-size: 8rem;
+}
+
+.select-pane {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  padding: 10px;
+}
+
+.select-pane button {
+  background-color: transparent;
+  border: 1px solid #0cf;
+}
+
+.select-pane button + button {
+  margin-left: 10px;
+}

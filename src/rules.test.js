@@ -21,18 +21,24 @@ test('calcScores', () => {
   expect(
     calcScores([
       {
-        [P1]: VALUES.ROCK,
-        [P2]: VALUES.PAPER,
+        result: {
+          [P1]: VALUES.ROCK,
+          [P2]: VALUES.PAPER,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.SCISSORS,
-        [P2]: VALUES.PAPER,
+        result: {
+          [P1]: VALUES.SCISSORS,
+          [P2]: VALUES.PAPER,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.SCISSORS,
-        [P2]: VALUES.ROCK,
+        result: {
+          [P1]: VALUES.SCISSORS,
+          [P2]: VALUES.ROCK,
+        },
         players: PLAYERS,
       },
     ])
@@ -44,18 +50,24 @@ test('calcScores', () => {
   expect(
     calcScores([
       {
-        [P1]: VALUES.PAPER,
-        [P2]: VALUES.PAPER,
+        result: {
+          [P1]: VALUES.PAPER,
+          [P2]: VALUES.PAPER,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.ROCK,
-        [P2]: VALUES.SCISSORS,
+        result: {
+          [P1]: VALUES.ROCK,
+          [P2]: VALUES.SCISSORS,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.PAPER,
-        [P2]: VALUES.SCISSORS,
+        result: {
+          [P1]: VALUES.PAPER,
+          [P2]: VALUES.SCISSORS,
+        },
         players: PLAYERS,
       },
     ])
@@ -67,18 +79,24 @@ test('calcScores', () => {
   expect(
     calcScores([
       {
-        [P1]: VALUES.SCISSORS,
-        [P2]: VALUES.PAPER,
+        result: {
+          [P1]: VALUES.SCISSORS,
+          [P2]: VALUES.PAPER,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.ROCK,
-        [P2]: VALUES.SCISSORS,
+        result: {
+          [P1]: VALUES.ROCK,
+          [P2]: VALUES.SCISSORS,
+        },
         players: PLAYERS,
       },
       {
-        [P1]: VALUES.PAPER,
-        [P2]: VALUES.ROCK,
+        result: {
+          [P1]: VALUES.PAPER,
+          [P2]: VALUES.ROCK,
+        },
         players: PLAYERS,
       },
     ])

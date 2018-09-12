@@ -9,12 +9,16 @@
 
 const express = require('express');
 const Web3 = require('web3');
+const cors = require('cors');
+const jsonParser = require('body-parser').json;
 const { helpers, Tx } = require('parsec-lib');
 
 const calcDistribution = require('./src/calcDistribution');
 const { calcScores } = require('./src/rules');
+const { last, not, ADDR_REGEX, isPendingRound } = require('./src/utils');
+const Receipt = require('./src/receipt');
 
-const PLASMA_PROVIDER = 'https://testnet-1.parseclabs.org';
+const PLASMA_PROVIDER = 'https://testnet-2.parseclabs.org';
 const web3 = helpers.extendWeb3(new Web3(PLASMA_PROVIDER));
 
 const gamePriv =
@@ -24,44 +28,83 @@ const faucetPriv =
   '0xfa359762f1ea6c392901857a6c788bedc41a4ff2df96ce1b9b5cf2e800c2dfce';
 const faucetAccount = web3.eth.accounts.privateKeyToAccount(faucetPriv);
 
-const ADDR_REGEX = /0x[A-Fa-f0-9]{40}/;
 const FUND_AMOUNT = 10000;
 
 const app = express();
 
-const last = (arr, n = 1) => arr[arr.length - n];
-
-const rockPaperScissors = () => {
-  return Math.round(Math.random() * 3);
-};
-
 const rounds = [];
 
-const gameInfo = async address => {
+/* eslint-disable no-shadow */
+function getLastRoundNumber(rounds) {
+  if (rounds.length > 0) {
+    const lastRound = last(rounds);
+    const number = isPendingRound(lastRound)
+      ? lastRound.number - 1
+      : lastRound.number;
+    return number < 1 ? 3 : number;
+  }
+
+  return 3;
+}
+/* eslint-enable no-shadow */
+
+const getGameInfo = async address => {
+  const distribution =
+    last(rounds) &&
+    last(rounds).distribution &&
+    Tx.fromRaw(last(rounds).distribution);
+  let tx = distribution && (await web3.eth.getTransaction(distribution.hash()));
+
+  if (!tx && distribution) {
+    tx = await web3.eth.sendSignedTransaction(distribution.toRaw());
+  }
+
   const unspent = await web3.getUnspent(address);
-  const transactions = await Promise.all(
+  const transactions = (await Promise.all(
     unspent.map(u =>
       web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
     )
-  );
+  )).sort((a, b) => a.blockNumber - b.blockNumber);
   const addrs = transactions
     .map(t => t.from)
-    .filter((addr, i, src) => src.indexOf(addr) === i);
+    .filter((addr, i, src) => src.indexOf(addr) === i)
+    .slice(0, 2);
+  const stake = Math.min.apply(
+    null,
+    transactions
+      .filter(t => addrs.indexOf(t.from) > -1)
+      .map(t => Number(t.value))
+  );
 
   const lastRoundNumber = (last(rounds) && last(rounds).number) || 3;
-  const latestRounds =
-    addrs.length < 2 ? [] : rounds.slice(rounds.length - (lastRoundNumber % 3));
+
+  const newGame = lastRoundNumber === 3 && addrs.length > 0 && tx;
+  const latestRounds = newGame
+    ? []
+    : rounds.slice(rounds.length - lastRoundNumber);
 
   return {
     address,
-    players:
-      latestRounds.length > 0 ? latestRounds[0].players : addrs.slice(0, 2),
-    rounds: latestRounds,
+    players: addrs.map(a => a.toLowerCase()),
+    rounds: latestRounds.filter(not(isPendingRound)),
+    stake,
   };
 };
 
+app.use(
+  cors({
+    origin: '*',
+  })
+);
+
+app.use(jsonParser());
+
 app.get('/games', async (request, response) => {
-  response.send(JSON.stringify([await gameInfo(gameAccount.address)]));
+  response.send(JSON.stringify([await getGameInfo(gameAccount.address)]));
+});
+
+app.get('/state', async (request, response) => {
+  response.send(JSON.stringify(rounds));
 });
 
 app.post('/requestFunds/:addr', async (request, response, next) => {
@@ -93,67 +136,79 @@ app.post('/requestFunds/:addr', async (request, response, next) => {
   response.send(txHash);
 });
 
-app.post('/round/:gameAddr/:round', async (request, response, next) => {
+app.post('/submitReceipt/:gameAddr', async (request, response, next) => {
   const { gameAddr } = request.params;
-  const round = Number(request.params.round);
-  if (!ADDR_REGEX.test(gameAddr) || isNaN(round)) {
-    response.send(
-      new Error(
-        'Wrong request. First param — game address, second — round number (1-3)'
-      )
-    );
-    return;
-  }
-
-  if (gameAccount.address !== gameAddr) {
+  if (!ADDR_REGEX.test(gameAddr)) {
     return next('Unknown game');
   }
 
-  const unspent = await web3.getUnspent(gameAddr);
-  const transactions = await Promise.all(
-    unspent.map(u =>
-      web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
-    )
+  try {
+    const { receipt } = request.body;
+    const { round, value, signer } = Receipt.parse(receipt);
+    const latestRounds = rounds.slice(rounds.length - 3);
+    const lastRoundNumber = getLastRoundNumber(latestRounds);
+
+    if (
+      (lastRoundNumber === 3 && round !== 1) ||
+      (lastRoundNumber !== 3 && round - lastRoundNumber !== 1)
+    ) {
+      return next('Wrong round');
+    }
+
+    const unspent = await web3.getUnspent(gameAddr);
+    const transactions = await Promise.all(
+      unspent.map(u =>
+        web3.eth.getTransaction(`0x${u.outpoint.hash.toString('hex')}`)
+      )
+    );
+    const gameInfo = await getGameInfo(gameAddr);
+    if (gameInfo.players.indexOf(signer) === -1) {
+      return next('Not a player');
+    }
+
+    if (gameInfo.players.length < 2) {
+      return next(`Not enough players (${gameInfo.players.length})`);
+    }
+
+    const [pendingRound] = latestRounds.filter(isPendingRound);
+    if (pendingRound) {
+      if (pendingRound.result[signer] !== undefined) {
+        return next('Chosen already');
+      }
+      pendingRound.result[signer] = value;
+    } else {
+      const newRound = {
+        number: round,
+        players: gameInfo.players,
+        stake: gameInfo.stake,
+        result: {
+          [signer]: value,
+        },
+      };
+      rounds.push(newRound);
+    }
+
+    if (round === 3 && pendingRound && pendingRound.number === 3) {
+      const scores = calcScores(rounds.slice(rounds.length - 3));
+      const distributionTx = calcDistribution(
+        scores,
+        unspent,
+        transactions
+      ).signAll(gameAccount.privateKey);
+
+      pendingRound.distribution = `0x${distributionTx.toRaw().toString('hex')}`;
+
+      await web3.eth.sendSignedTransaction(distributionTx.toRaw());
+    }
+  } catch (err) {
+    next(err);
+  }
+
+  response.send(
+    JSON.stringify({
+      status: 'ok',
+    })
   );
-  const addrs = transactions
-    .map(t => t.from)
-    .filter((addr, i, src) => src.indexOf(addr) === i);
-  if (addrs.length < 2) {
-    return next(`Not enough players (${addrs.length})`);
-  }
-
-  const lastRoundNumber = rounds.length === 0 ? 3 : last(rounds).number;
-
-  if (
-    (lastRoundNumber === 3 && round !== 1) ||
-    (lastRoundNumber !== 3 && round - lastRoundNumber !== 1)
-  ) {
-    return next('Wrong round');
-  }
-
-  const players =
-    lastRoundNumber === 3 ? addrs.slice(0, 2) : last(rounds).players;
-
-  const newRound = {
-    number: round,
-    players,
-    [players[0]]: rockPaperScissors(),
-    [players[1]]: rockPaperScissors(),
-  };
-
-  rounds.push(newRound);
-
-  if (round === 3) {
-    const scores = calcScores(rounds.slice(round.length - 3));
-    const distributionTx = calcDistribution(
-      scores,
-      unspent,
-      transactions
-    ).signAll(gameAccount.privateKey);
-    await web3.eth.sendSignedTransaction(distributionTx.toRaw());
-  }
-
-  response.send('Ok');
 });
 
 app.listen(3005, () => {
@@ -162,13 +217,12 @@ app.listen(3005, () => {
 
 /* eslint-disable no-unused-vars */
 app.use((err, req, res, next) => {
-  /* eslint-enable */
+  /* eslint-enable no-unused-vars */
 
   if (err) {
     res.status(500).send(
       JSON.stringify({
-        type: 'error',
-        message: err,
+        message: err.message || err,
       })
     );
   }

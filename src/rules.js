@@ -19,8 +19,8 @@ const calcScores = rounds => {
 
   return rounds.reduce(
     (scores, round) => ({
-      [p1]: scores[p1] + calcScore(round[p1], round[p2]),
-      [p2]: scores[p2] + calcScore(round[p2], round[p1]),
+      [p1]: scores[p1] + calcScore(round.result[p1], round.result[p2]),
+      [p2]: scores[p2] + calcScore(round.result[p2], round.result[p1]),
     }),
     {
       [p1]: 0,
