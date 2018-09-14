@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 const Web3 = require('web3');
-const { helpers, Tx } = require('parsec-lib');
+const { helpers, Tx, Input, Output } = require('parsec-lib');
 const Receipt = require('./src/receipt');
 const { VALUES } = require('./src/constants');
 
@@ -20,7 +20,9 @@ const PRIV2 =
   '0x733b6882773a76a1ab1e535c057c87937179b44d1be1de0bb0ea23bfd009ba79';
 const P1 = web3.eth.accounts.privateKeyToAccount(PRIV1);
 const P2 = web3.eth.accounts.privateKeyToAccount(PRIV2);
-const GAME_ADDR = '0xB549eda70D3765d5E978f2C761650CB29d4683f3';
+const gamePriv =
+  '0xbfafef54b578da46179c6d1964503368fd103e4d553c4ed4302d71acd3f62172';
+const gameAccount = web3.eth.accounts.privateKeyToAccount(gamePriv);
 
 async function transfer(acc, to, value, color) {
   const unspent = await web3.getUnspent(acc.address);
@@ -56,11 +58,24 @@ async function fundTheFaucet() {
 async function setupTheGame() {
   await transfer(faucetAccount, P1.address, 1000, 0);
   await transfer(faucetAccount, P2.address, 1000, 0);
-  await transfer(P1, GAME_ADDR, 1000, 0);
-  await transfer(P2, GAME_ADDR, 1000, 0);
-  await printBalance('Game', GAME_ADDR);
+  await transfer(P1, gameAccount.address, 1000, 0);
+  await transfer(P2, gameAccount.address, 1000, 0);
+  await printBalance('Game', gameAccount.address);
   await printBalance('P1', P1.address);
   await printBalance('P2', P2.address);
+}
+
+async function cleanupTheGame() {
+  const unspent = await web3.getUnspent(gameAccount.address);
+  const inputs = unspent.map(u => new Input(u.outpoint));
+  const transactions = await Promise.all(
+    unspent.map(u =>
+      web3.eth.getTransaction('0x' + u.outpoint.hash.toString('hex'))
+    )
+  );
+  const outputs = transactions.map(t => new Output(Number(t.value), t.from, 0));
+  const tx = Tx.transfer(inputs, outputs).signAll(gameAccount.privateKey);
+  return web3.eth.sendSignedTransaction(tx.toRaw());
 }
 
 function drawGame() {
@@ -73,9 +88,9 @@ function drawGame() {
 }
 
 async function run() {
-  drawGame();
+  // drawGame();
   // await fundTheFaucet();
-  await setupTheGame();
+  await cleanupTheGame();
   // const unspent = await web3.getUnspent(alice.address);
   // const inputs = helpers.calcInputs(unspent, alice.address, 1000000, 0);
   // const outputs = helpers.calcOutputs(

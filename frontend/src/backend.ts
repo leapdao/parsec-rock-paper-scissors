@@ -1,7 +1,7 @@
 import { requestApi } from './api';
 import { IGame } from './types';
 
-const request = requestApi('http://localhost:3005');
+const request = requestApi('http://testnet-1.parseclabs.org:3005');
 
 export const getGames = (): Promise<IGame[]> => {
   return request('get', 'games');
