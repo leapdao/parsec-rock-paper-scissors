@@ -1,9 +1,10 @@
 /* eslint-disable */
 
 const Web3 = require('web3');
-const { helpers, Tx, Input, Output } = require('parsec-lib');
+const { helpers, Tx } = require('parsec-lib');
 const Receipt = require('./src/receipt');
 const { VALUES } = require('./src/constants');
+const { cleanupTheGame } = require('./src/utils');
 
 const PLASMA_PROVIDER = 'https://testnet-2.parseclabs.org';
 const web3 = helpers.extendWeb3(new Web3(PLASMA_PROVIDER));
@@ -65,19 +66,6 @@ async function setupTheGame() {
   await printBalance('P2', P2.address);
 }
 
-async function cleanupTheGame() {
-  const unspent = await web3.getUnspent(gameAccount.address);
-  const inputs = unspent.map(u => new Input(u.outpoint));
-  const transactions = await Promise.all(
-    unspent.map(u =>
-      web3.eth.getTransaction('0x' + u.outpoint.hash.toString('hex'))
-    )
-  );
-  const outputs = transactions.map(t => new Output(Number(t.value), t.from, 0));
-  const tx = Tx.transfer(inputs, outputs).signAll(gameAccount.privateKey);
-  return web3.eth.sendSignedTransaction(tx.toRaw());
-}
-
 function drawGame() {
   console.log('1. ', Receipt.create(1, VALUES.ROCK, PRIV1));
   console.log('1. ', Receipt.create(1, VALUES.SCISSORS, PRIV2));
@@ -90,7 +78,7 @@ function drawGame() {
 async function run() {
   // drawGame();
   // await fundTheFaucet();
-  await cleanupTheGame();
+  await cleanupTheGame(web3, gameAccount);
   // const unspent = await web3.getUnspent(alice.address);
   // const inputs = helpers.calcInputs(unspent, alice.address, 1000000, 0);
   // const outputs = helpers.calcOutputs(

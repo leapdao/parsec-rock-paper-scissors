@@ -15,7 +15,13 @@ const { helpers, Tx } = require('parsec-lib');
 
 const calcDistribution = require('./src/calcDistribution');
 const { calcScores } = require('./src/rules');
-const { last, not, ADDR_REGEX, isPendingRound } = require('./src/utils');
+const {
+  last,
+  not,
+  ADDR_REGEX,
+  isPendingRound,
+  cleanupTheGame,
+} = require('./src/utils');
 const Receipt = require('./src/receipt');
 
 const PLASMA_PROVIDER = 'https://testnet-2.parseclabs.org';
@@ -99,12 +105,17 @@ app.use(
 
 app.use(jsonParser());
 
-app.get('/games', async (request, response) => {
+app.get('/games', async (_, response) => {
   response.send(JSON.stringify([await getGameInfo(gameAccount.address)]));
 });
 
-app.get('/state', async (request, response) => {
+app.get('/state', async (_, response) => {
   response.send(JSON.stringify(rounds));
+});
+
+app.post('/reset', async (_, response) => {
+  await cleanupTheGame(web3, gameAccount);
+  response.send('ok');
 });
 
 app.post('/requestFunds/:addr', async (request, response, next) => {
